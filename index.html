@@ -282,7 +282,8 @@ function render(data) {
     const drink = parseInt(d.drink) || 0;
     const stale = isStale(d.last_update);
     const status = d.status || '대기중';
-    const bagStr = total > 0 ? `${item}/${total}` : '-';
+    const bagPct = total > 0 ? Math.round(item / total * 100) : 0;
+    const bagStr = total > 0 ? `${item}/${total} (${bagPct}%)` : '-';
     const bagWarn = total > 0 && bagFree < 4;
 
     return `<tr class="${stale ? 'stale-row' : ''}">
