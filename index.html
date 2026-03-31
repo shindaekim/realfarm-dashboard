@@ -49,7 +49,8 @@
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
   th { background: #0f3460; color: #aaa; padding: 6px 8px; text-align: left; white-space: nowrap; }
   td { padding: 5px 8px; border-bottom: 1px solid #1a1a3e; white-space: nowrap; }
-  tr:hover { background: #1a2a4e; }
+  tr:hover { background: #1a2a4e; cursor: pointer; }
+  tr.selected-row { background: #2a3a6e !important; outline: 1px solid #4a7aff; }
   .tag { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
   .tag-갈엎중 { background: #1b5e20; color: #a5d6a7; }
   .tag-정산중 { background: #e65100; color: #ffcc80; }
@@ -136,6 +137,9 @@
     <h3>🛒 안전거래 주문</h3>
     <label>PC</label>
     <select id="sellPc"><option value="PC7">PC7</option></select>
+    <label>디바이스</label>
+    <input type="text" id="sellDevice" value="자동 (수량 최대)" readonly style="color:#888;cursor:default">
+    <input type="hidden" id="sellDeviceId" value="">
     <label>구매자</label>
     <input type="text" id="sellName" placeholder="구매자 이름">
     <label>가격 (만골드)</label>
@@ -286,7 +290,7 @@ function render(data) {
     const bagStr = total > 0 ? `${item}/${total} (${bagPct}%)` : '-';
     const bagWarn = total > 0 && bagFree < 4;
 
-    return `<tr class="${stale ? 'stale-row' : ''}">
+    return `<tr class="${stale ? 'stale-row' : ''}" onclick="selectDevice('${d.pc_id}',${d.device_id},'${(d.name||'').replace(/'/g,"\\'")}')">
       <td>${d.pc_id}</td>
       <td>${d.device_id}</td>
       <td>${d.name || '-'}</td>
@@ -324,6 +328,26 @@ async function loadPcList() {
   } catch(e) {}
 }
 
+function selectDevice(pcId, deviceId, name) {
+  document.getElementById('sellPc').value = pcId;
+  document.getElementById('sellDeviceId').value = deviceId;
+  document.getElementById('sellDevice').value = `#${deviceId} ${name}`;
+  document.getElementById('sellDevice').style.color = '#4a7aff';
+  // 행 하이라이트
+  document.querySelectorAll('#statusTable tr').forEach(tr => tr.classList.remove('selected-row'));
+  event.currentTarget.classList.add('selected-row');
+  // 폼으로 스크롤
+  document.querySelector('.sell-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// 자동 배정으로 초기화
+function clearDeviceSelection() {
+  document.getElementById('sellDeviceId').value = '';
+  document.getElementById('sellDevice').value = '자동 (수량 최대)';
+  document.getElementById('sellDevice').style.color = '#888';
+  document.querySelectorAll('#statusTable tr').forEach(tr => tr.classList.remove('selected-row'));
+}
+
 function showToast(msg, isError) {
   const t = document.getElementById('sellToast');
   t.textContent = msg;
@@ -340,6 +364,10 @@ async function submitSell(item) {
 
   if (!name) { showToast('구매자 이름을 입력하세요', true); return; }
 
+  const deviceId = document.getElementById('sellDeviceId').value;
+  const body = { pc_id: pcId, customer_name: name, item, price, count };
+  if (deviceId) body.device_id = parseInt(deviceId);
+
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/sell`, {
       method: 'POST',
@@ -348,11 +376,13 @@ async function submitSell(item) {
         'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ pc_id: pcId, customer_name: name, item, price, count })
+      body: JSON.stringify(body)
     });
     if (res.ok || res.status === 201) {
       const label = item === 'high_mineral' ? '고미' : '시균';
-      showToast(`${label} 주문 등록 완료 (${name} x${count})`);
+      const devLabel = deviceId ? `#${deviceId}` : '자동';
+      showToast(`${label} 주문 등록 (${devLabel} → ${name} x${count})`);
+      clearDeviceSelection();
       refreshQueue();
     } else {
       const err = await res.text();
