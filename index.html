@@ -149,6 +149,7 @@
         <th onclick="sortTable('pc_id')">PC<span class="sort-arrow" id="sort_pc_id"></span></th>
         <th onclick="sortTable('device_id')">#<span class="sort-arrow" id="sort_device_id"></span></th>
         <th onclick="sortTable('name')">이름<span class="sort-arrow" id="sort_name"></span></th>
+        <th>제어</th>
         <th onclick="sortTable('status')">상태<span class="sort-arrow" id="sort_status"></span></th>
         <th onclick="sortTable('bag_pct')">가방<span class="sort-arrow" id="sort_bag_pct"></span></th>
         <th onclick="sortTable('high_mineral')">고미<span class="sort-arrow" id="sort_high_mineral"></span></th>
@@ -156,7 +157,6 @@
         <th onclick="sortTable('drink')">체력<span class="sort-arrow" id="sort_drink"></span></th>
         <th onclick="sortTable('gold')">골드<span class="sort-arrow" id="sort_gold"></span></th>
         <th onclick="sortTable('last_update')">업데이트<span class="sort-arrow" id="sort_last_update"></span></th>
-        <th>제어</th>
       </tr>
     </thead>
     <tbody id="statusTable"></tbody>
@@ -347,6 +347,7 @@ function render(data) {
       <td>${d.pc_id}</td>
       <td>${d.device_id}</td>
       <td>${d.name || '-'}</td>
+      <td>${ctrlHtml}</td>
       <td><span class="tag tag-${status}">${status}</span></td>
       <td class="${bagWarn ? 'warn' : ''}">${bagStr}</td>
       <td>${d.high_mineral || '-'}</td>
@@ -354,7 +355,6 @@ function render(data) {
       <td class="${drink < 2 ? 'warn' : ''}">${d.drink || '-'}</td>
       <td class="gold">${formatGold(d.gold)}</td>
       <td class="${stale ? 'warn' : ''}">${timeSince(d.last_update)}</td>
-      <td>${ctrlHtml}</td>
     </tr>`;
   }).join('');
 }
