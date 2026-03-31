@@ -587,26 +587,17 @@ function renderGoldChart(rows) {
 
   const deviceKeys = Object.keys(devices).sort();
 
-  // 증감량 계산 (전일 대비)
-  const deltas = {};
-  deviceKeys.forEach(dk => {
-    deltas[dk] = {};
-    for (let i = 0; i < dates.length; i++) {
-      const cur = devices[dk][dates[i]] || 0;
-      const prev = i > 0 ? (devices[dk][dates[i-1]] || cur) : cur;
-      deltas[dk][dates[i]] = cur - prev;
-    }
-  });
-
-  // Y축 범위 (증감량)
-  let minY = 0, maxY = 0;
+  // Y축 범위 (보유 골드)
+  let minY = Infinity, maxY = 0;
   deviceKeys.forEach(dk => {
     dates.forEach(d => {
-      const v = deltas[dk][d] || 0;
+      const v = devices[dk][d];
+      if (v === undefined) return;
       if (v < minY) minY = v;
       if (v > maxY) maxY = v;
     });
   });
+  if (minY === Infinity) minY = 0;
   if (minY === maxY) { maxY = minY + 1000; }
   const yRange = maxY - minY;
   minY -= yRange * 0.1;
@@ -621,13 +612,6 @@ function renderGoldChart(rows) {
 
   // 배경
   ctx.clearRect(0, 0, W, H);
-
-  // 0 기준선
-  if (minY < 0 && maxY > 0) {
-    ctx.strokeStyle = '#444'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
-    ctx.beginPath(); ctx.moveTo(pad.left, toY(0)); ctx.lineTo(W-pad.right, toY(0)); ctx.stroke();
-    ctx.setLineDash([]);
-  }
 
   // Y축 그리드
   ctx.fillStyle = '#666'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
@@ -660,7 +644,7 @@ function renderGoldChart(rows) {
     ctx.beginPath();
     let started = false;
     dates.forEach((d, i) => {
-      const v = deltas[dk][d];
+      const v = devices[dk][d];
       if (v === undefined) return;
       const x = toX(i), y = toY(v);
       if (!started) { ctx.moveTo(x, y); started = true; }
@@ -670,7 +654,7 @@ function renderGoldChart(rows) {
 
     // 마지막 포인트에 점
     const lastDate = dates[dates.length - 1];
-    const lastVal = deltas[dk][lastDate];
+    const lastVal = devices[dk][lastDate];
     if (lastVal !== undefined) {
       ctx.fillStyle = color;
       ctx.beginPath(); ctx.arc(toX(dates.length-1), toY(lastVal), 3, 0, Math.PI*2); ctx.fill();
