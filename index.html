@@ -700,8 +700,31 @@ function renderGoldChart(rows) {
 async function refreshGoldTrend() {
   try {
     const rows = await fetchGoldHistory();
+    if (!Array.isArray(rows) || rows.length === 0) {
+      const canvas = document.getElementById('goldChart');
+      const ctx2 = canvas.getContext('2d');
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * (window.devicePixelRatio||1);
+      canvas.height = 250 * (window.devicePixelRatio||1);
+      canvas.style.height = '250px';
+      ctx2.scale(window.devicePixelRatio||1, window.devicePixelRatio||1);
+      ctx2.fillStyle = '#666'; ctx2.font = '13px sans-serif';
+      ctx2.fillText('골드 기록이 없습니다', rect.width/2-60, 125);
+      document.getElementById('goldLegend').innerHTML = '';
+      return;
+    }
     renderGoldChart(rows);
-  } catch(e) {}
+  } catch(e) {
+    const canvas = document.getElementById('goldChart');
+    const ctx2 = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * (window.devicePixelRatio||1);
+    canvas.height = 250 * (window.devicePixelRatio||1);
+    canvas.style.height = '250px';
+    ctx2.scale(window.devicePixelRatio||1, window.devicePixelRatio||1);
+    ctx2.fillStyle = '#666'; ctx2.font = '13px sans-serif';
+    ctx2.fillText('골드 트렌드 로드 실패', rect.width/2-60, 125);
+  }
 }
 
 async function refresh() {
