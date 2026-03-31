@@ -329,14 +329,17 @@ async function loadPcList() {
 }
 
 function selectDevice(pcId, deviceId, name) {
+  const current = document.getElementById('sellDeviceId').value;
+  if (current === String(deviceId)) {
+    clearDeviceSelection();
+    return;
+  }
   document.getElementById('sellPc').value = pcId;
   document.getElementById('sellDeviceId').value = deviceId;
   document.getElementById('sellDevice').value = `#${deviceId} ${name}`;
   document.getElementById('sellDevice').style.color = '#4a7aff';
-  // 행 하이라이트
   document.querySelectorAll('#statusTable tr').forEach(tr => tr.classList.remove('selected-row'));
   event.currentTarget.classList.add('selected-row');
-  // 폼으로 스크롤
   document.querySelector('.sell-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
