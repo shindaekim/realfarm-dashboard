@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RealFarm Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: '맑은 고딕', sans-serif; background: #1a1a2e; color: #eee; padding: 12px; }
+  h1 { font-size: 18px; color: #aaa; margin-bottom: 8px; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .top-bar .update-info { font-size: 12px; color: #888; }
+  .top-bar .update-info.stale { color: #ff4444; }
+
+  /* 경고 패널 */
+  .alerts { display: flex; gap: 12px; margin-bottom: 12px; }
+  .alert-box { flex: 1; background: #2a1a1a; border: 1px solid #442222; border-radius: 8px; padding: 10px; min-height: 60px; }
+  .alert-box h3 { font-size: 13px; color: #ff6b6b; margin-bottom: 6px; }
+  .alert-box.ok { background: #1a2a1a; border-color: #224422; }
+  .alert-box.ok h3 { color: #6bff6b; }
+  .alert-item { font-size: 12px; padding: 2px 0; display: flex; justify-content: space-between; }
+  .alert-item .name { color: #ddd; }
+  .alert-item .val { color: #ff6b6b; font-weight: bold; }
+
+  /* 차트 영역 */
+  .charts { display: flex; gap: 12px; margin-bottom: 12px; }
+  .chart-box { flex: 1; background: #16213e; border-radius: 8px; padding: 12px; }
+  .chart-box h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; }
+  .bar-row { display: flex; align-items: center; margin-bottom: 4px; font-size: 12px; }
+  .bar-label { width: 70px; text-align: right; margin-right: 8px; color: #aaa; }
+  .bar-track { flex: 1; height: 20px; background: #0f3460; border-radius: 4px; overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+  .bar-count { position: absolute; right: 6px; top: 2px; font-size: 11px; color: #fff; }
+  .status-갈엎중 { background: #4caf50; }
+  .status-정산중 { background: #ff9800; }
+  .status-안전거래중 { background: #2196f3; }
+  .status-대기중 { background: #666; }
+
+  /* 도넛 차트 */
+  .donut-wrap { display: flex; align-items: center; gap: 16px; }
+  .donut-svg { width: 100px; height: 100px; }
+  .donut-legend { font-size: 12px; }
+  .donut-legend div { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .donut-legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* 테이블 */
+  .table-wrap { background: #16213e; border-radius: 8px; padding: 12px; overflow-x: auto; }
+  .table-wrap h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #0f3460; color: #aaa; padding: 6px 8px; text-align: left; white-space: nowrap; }
+  td { padding: 5px 8px; border-bottom: 1px solid #1a1a3e; white-space: nowrap; }
+  tr:hover { background: #1a2a4e; }
+  .tag { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+  .tag-갈엎중 { background: #1b5e20; color: #a5d6a7; }
+  .tag-정산중 { background: #e65100; color: #ffcc80; }
+  .tag-안전거래중 { background: #0d47a1; color: #90caf9; }
+  .tag-대기중 { background: #333; color: #999; }
+  .warn { color: #ff4444; font-weight: bold; }
+  .stale-row { opacity: 0.5; }
+  .gold { color: #ffd700; }
+
+  /* Sell 영역 */
+  .sell-section { display: flex; gap: 12px; margin-top: 12px; }
+  .sell-form { flex: 0 0 320px; background: #16213e; border-radius: 8px; padding: 12px; }
+  .sell-form h3 { font-size: 13px; color: #aaa; margin-bottom: 10px; }
+  .sell-form label { display: block; font-size: 12px; color: #aaa; margin-bottom: 3px; }
+  .sell-form input, .sell-form select { width: 100%; padding: 6px 8px; border: 1px solid #0f3460; border-radius: 4px; background: #1a1a2e; color: #eee; font-size: 13px; margin-bottom: 8px; }
+  .sell-form select { cursor: pointer; }
+  .sell-form .btn-row { display: flex; gap: 8px; }
+  .sell-form button { flex: 1; padding: 8px; border: none; border-radius: 4px; font-size: 13px; font-weight: bold; cursor: pointer; }
+  .btn-hm { background: #e91e63; color: #fff; }
+  .btn-hm:hover { background: #c2185b; }
+  .btn-ct { background: #2196f3; color: #fff; }
+  .btn-ct:hover { background: #1565c0; }
+  .sell-queue { flex: 1; background: #16213e; border-radius: 8px; padding: 12px; }
+  .sell-queue h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; }
+  .sell-queue .empty { color: #666; font-size: 12px; }
+  .queue-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; margin-bottom: 4px; background: #1a1a3e; border-radius: 4px; font-size: 12px; }
+  .queue-item .info { }
+  .queue-item .item-hm { color: #e91e63; }
+  .queue-item .item-ct { color: #2196f3; }
+  .queue-item .del-btn { background: #442222; border: none; color: #ff6b6b; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+  .queue-item .del-btn:hover { background: #663333; }
+  .sell-toast { position: fixed; bottom: 20px; right: 20px; background: #4caf50; color: #fff; padding: 10px 20px; border-radius: 6px; font-size: 13px; display: none; z-index: 100; }
+  .sell-toast.error { background: #f44336; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>🌱 RealFarm Dashboard</h1>
+  <div class="update-info" id="updateInfo">로딩 중...</div>
+</div>
+
+<div class="alerts">
+  <div class="alert-box" id="bagAlert">
+    <h3>📦 가방 경고 (여유 &lt; 4)</h3>
+    <div id="bagList"></div>
+  </div>
+  <div class="alert-box" id="drinkAlert">
+    <h3>💊 체력 경고 (&lt; 2)</h3>
+    <div id="drinkList"></div>
+  </div>
+</div>
+
+<div class="charts">
+  <div class="chart-box">
+    <h3>상태 현황</h3>
+    <div id="statusBars"></div>
+  </div>
+  <div class="chart-box">
+    <h3>PC별 가동</h3>
+    <div class="donut-wrap">
+      <svg class="donut-svg" id="donutSvg" viewBox="0 0 42 42"></svg>
+      <div class="donut-legend" id="donutLegend"></div>
+    </div>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <h3>디바이스 상세</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>PC</th><th>#</th><th>이름</th><th>상태</th>
+        <th>가방</th><th>고미</th><th>시균</th><th>체력</th>
+        <th>골드</th><th>업데이트</th>
+      </tr>
+    </thead>
+    <tbody id="statusTable"></tbody>
+  </table>
+</div>
+
+<div class="sell-section">
+  <div class="sell-form">
+    <h3>🛒 안전거래 주문</h3>
+    <label>PC</label>
+    <select id="sellPc"><option value="PC7">PC7</option></select>
+    <label>구매자</label>
+    <input type="text" id="sellName" placeholder="구매자 이름">
+    <label>가격 (만골드)</label>
+    <input type="number" id="sellPrice" value="3000" step="100" min="100">
+    <label>반복</label>
+    <select id="sellCount"></select>
+    <div class="btn-row">
+      <button class="btn-hm" onclick="submitSell('high_mineral')">고미 주문</button>
+      <button class="btn-ct" onclick="submitSell('crack_time')">시균 주문</button>
+    </div>
+  </div>
+  <div class="sell-queue">
+    <h3>📋 대기열</h3>
+    <div id="queueList"><div class="empty">대기 중인 주문 없음</div></div>
+  </div>
+</div>
+<div class="sell-toast" id="sellToast"></div>
+
+<script>
+const SUPABASE_URL = 'https://vszizoahwfjvcoxrjygr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzeml6b2Fod2ZqdmNveHJqeWdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5Mjk0NzIsImV4cCI6MjA5MDUwNTQ3Mn0.8IOMrEgoDycG2TOBT5Vtliy3CUs9Ua5AtpCqHvGdEv8';
+
+async function fetchStatus() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/status?select=*&order=pc_id.asc,device_id.asc`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+  return await res.json();
+}
+
+function formatGold(g) {
+  if (!g) return '-';
+  const n = parseInt(g.replace(/,/g, ''));
+  if (isNaN(n)) return g;
+  if (n >= 100000000) return (n / 100000000).toFixed(1) + '억';
+  if (n >= 10000) return (n / 10000).toFixed(0) + '만';
+  return g;
+}
+
+function timeSince(iso) {
+  if (!iso) return '-';
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return Math.floor(diff) + '초 전';
+  if (diff < 3600) return Math.floor(diff / 60) + '분 전';
+  return Math.floor(diff / 3600) + '시간 전';
+}
+
+function isStale(iso) {
+  if (!iso) return true;
+  return (Date.now() - new Date(iso).getTime()) > 120000; // 2분
+}
+
+function render(data) {
+  const now = new Date().toLocaleTimeString('ko-KR');
+  document.getElementById('updateInfo').textContent = `마지막 갱신: ${now} | ${data.length}대`;
+
+  // 경고: 가방
+  const bagWarns = data.filter(d => {
+    const item = parseInt(d.item_cnt) || 0;
+    const total = parseInt(d.total_cnt) || 0;
+    return total > 0 && (total - item) < 4;
+  });
+  const bagBox = document.getElementById('bagAlert');
+  const bagList = document.getElementById('bagList');
+  if (bagWarns.length === 0) {
+    bagBox.className = 'alert-box ok';
+    bagBox.querySelector('h3').textContent = '📦 가방 정상';
+    bagList.innerHTML = '<div style="color:#6bff6b;font-size:12px">경고 없음</div>';
+  } else {
+    bagBox.className = 'alert-box';
+    bagBox.querySelector('h3').textContent = `📦 가방 경고 (${bagWarns.length}대)`;
+    bagList.innerHTML = bagWarns.map(d =>
+      `<div class="alert-item"><span class="name">${d.pc_id}-${d.device_id} ${d.name||''}</span><span class="val">${d.item_cnt}/${d.total_cnt}</span></div>`
+    ).join('');
+  }
+
+  // 경고: 체력
+  const drinkWarns = data.filter(d => {
+    if (d.drink == null || d.drink === '') return false;
+    const drink = parseInt(d.drink);
+    return !isNaN(drink) && drink < 2;
+  });
+  const drinkBox = document.getElementById('drinkAlert');
+  const drinkList = document.getElementById('drinkList');
+  if (drinkWarns.length === 0) {
+    drinkBox.className = 'alert-box ok';
+    drinkBox.querySelector('h3').textContent = '💊 체력 정상';
+    drinkList.innerHTML = '<div style="color:#6bff6b;font-size:12px">경고 없음</div>';
+  } else {
+    drinkBox.className = 'alert-box';
+    drinkBox.querySelector('h3').textContent = `💊 체력 경고 (${drinkWarns.length}대)`;
+    drinkList.innerHTML = drinkWarns.map(d =>
+      `<div class="alert-item"><span class="name">${d.pc_id}-${d.device_id} ${d.name||''}</span><span class="val">${d.drink||0}</span></div>`
+    ).join('');
+  }
+
+  // 상태 바 차트
+  const statusCounts = {};
+  const statuses = ['갈엎중', '정산중', '안전거래중', '대기중'];
+  statuses.forEach(s => statusCounts[s] = 0);
+  data.forEach(d => {
+    const s = d.status || '대기중';
+    statusCounts[s] = (statusCounts[s] || 0) + 1;
+  });
+  const maxCount = Math.max(...Object.values(statusCounts), 1);
+  document.getElementById('statusBars').innerHTML = statuses.map(s => {
+    const c = statusCounts[s] || 0;
+    const pct = (c / data.length * 100) || 0;
+    return `<div class="bar-row">
+      <div class="bar-label">${s}</div>
+      <div class="bar-track">
+        <div class="bar-fill status-${s}" style="width:${pct}%"></div>
+        <div class="bar-count">${c}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // 도넛: PC별
+  const pcCounts = {};
+  data.forEach(d => { pcCounts[d.pc_id] = (pcCounts[d.pc_id] || 0) + 1; });
+  const pcColors = ['#e91e63', '#2196f3', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4'];
+  const pcs = Object.keys(pcCounts).sort();
+  let offset = 0;
+  const totalDevices = data.length || 1;
+  const segments = pcs.map((pc, i) => {
+    const pct = pcCounts[pc] / totalDevices * 100;
+    const dashArray = `${pct} ${100 - pct}`;
+    const seg = `<circle cx="21" cy="21" r="15.9" fill="none" stroke="${pcColors[i % pcColors.length]}"
+      stroke-width="5" stroke-dasharray="${dashArray}" stroke-dashoffset="${-offset}" />`;
+    offset += pct;
+    return seg;
+  });
+  document.getElementById('donutSvg').innerHTML =
+    `<circle cx="21" cy="21" r="15.9" fill="none" stroke="#0f3460" stroke-width="5"/>` +
+    segments.join('');
+  document.getElementById('donutLegend').innerHTML = pcs.map((pc, i) =>
+    `<div><span class="dot" style="background:${pcColors[i % pcColors.length]}"></span>${pc}: ${pcCounts[pc]}대</div>`
+  ).join('');
+
+  // 테이블
+  document.getElementById('statusTable').innerHTML = data.map(d => {
+    const item = parseInt(d.item_cnt) || 0;
+    const total = parseInt(d.total_cnt) || 0;
+    const bagFree = total - item;
+    const drink = parseInt(d.drink) || 0;
+    const stale = isStale(d.last_update);
+    const status = d.status || '대기중';
+    const bagStr = total > 0 ? `${item}/${total}` : '-';
+    const bagWarn = total > 0 && bagFree < 4;
+
+    return `<tr class="${stale ? 'stale-row' : ''}">
+      <td>${d.pc_id}</td>
+      <td>${d.device_id}</td>
+      <td>${d.name || '-'}</td>
+      <td><span class="tag tag-${status}">${status}</span></td>
+      <td class="${bagWarn ? 'warn' : ''}">${bagStr}</td>
+      <td>${d.high_mineral || '-'}</td>
+      <td>${d.crack_time || '-'}</td>
+      <td class="${drink < 2 ? 'warn' : ''}">${d.drink || '-'}</td>
+      <td class="gold">${formatGold(d.gold)}</td>
+      <td class="${stale ? 'warn' : ''}">${timeSince(d.last_update)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Sell 반복 콤보 초기화
+(function() {
+  const sel = document.getElementById('sellCount');
+  for (let i = 1; i <= 20; i++) {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = i;
+    sel.appendChild(opt);
+  }
+})();
+
+// PC 목록 동적 로드
+async function loadPcList() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/status?select=pc_id&order=pc_id.asc`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const data = await res.json();
+    const pcs = [...new Set(data.map(d => d.pc_id))];
+    const sel = document.getElementById('sellPc');
+    sel.innerHTML = pcs.map(pc => `<option value="${pc}">${pc}</option>`).join('');
+  } catch(e) {}
+}
+
+function showToast(msg, isError) {
+  const t = document.getElementById('sellToast');
+  t.textContent = msg;
+  t.className = 'sell-toast' + (isError ? ' error' : '');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+async function submitSell(item) {
+  const pcId = document.getElementById('sellPc').value;
+  const name = document.getElementById('sellName').value.trim();
+  const price = parseInt(document.getElementById('sellPrice').value) || 3000;
+  const count = parseInt(document.getElementById('sellCount').value) || 1;
+
+  if (!name) { showToast('구매자 이름을 입력하세요', true); return; }
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/sell`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ pc_id: pcId, customer_name: name, item, price, count })
+    });
+    if (res.ok || res.status === 201) {
+      const label = item === 'high_mineral' ? '고미' : '시균';
+      showToast(`${label} 주문 등록 완료 (${name} x${count})`);
+      refreshQueue();
+    } else {
+      const err = await res.text();
+      showToast(`등록 실패: ${err}`, true);
+    }
+  } catch(e) {
+    showToast(`오류: ${e.message}`, true);
+  }
+}
+
+async function fetchQueue() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/sell?select=*&order=created_at.asc`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+  return await res.json();
+}
+
+async function deleteSellRow(id) {
+  await fetch(`${SUPABASE_URL}/rest/v1/sell?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+  refreshQueue();
+}
+
+async function refreshQueue() {
+  try {
+    const rows = await fetchQueue();
+    const el = document.getElementById('queueList');
+    if (rows.length === 0) {
+      el.innerHTML = '<div class="empty">대기 중인 주문 없음</div>';
+      return;
+    }
+    el.innerHTML = rows.map(r => {
+      const label = r.item === 'high_mineral' ? '고미' : '시균';
+      const cls = r.item === 'high_mineral' ? 'item-hm' : 'item-ct';
+      const dev = r.device_id ? `#${r.device_id}` : '자동';
+      return `<div class="queue-item">
+        <div class="info">
+          <span class="${cls}">[${label}]</span>
+          ${r.pc_id}-${dev} → ${r.customer_name} | ${r.price}만 x${r.count}
+        </div>
+        <button class="del-btn" onclick="deleteSellRow(${r.id})">삭제</button>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+async function refresh() {
+  try {
+    const data = await fetchStatus();
+    render(data);
+    refreshQueue();
+  } catch (e) {
+    document.getElementById('updateInfo').textContent = `오류: ${e.message}`;
+    document.getElementById('updateInfo').className = 'update-info stale';
+  }
+}
+
+loadPcList();
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>
