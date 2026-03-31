@@ -86,6 +86,13 @@
   .queue-item .del-btn:hover { background: #663333; }
   .sell-toast { position: fixed; bottom: 20px; right: 20px; background: #4caf50; color: #fff; padding: 10px 20px; border-radius: 6px; font-size: 13px; display: none; z-index: 100; }
   .sell-toast.error { background: #f44336; }
+
+  /* 제어 버튼 */
+  .ctrl-btn { border: none; padding: 3px 8px; border-radius: 3px; font-size: 11px; cursor: pointer; font-weight: bold; }
+  .ctrl-run { background: #1b5e20; color: #a5d6a7; }
+  .ctrl-run:hover { background: #2e7d32; }
+  .ctrl-stop { background: #b71c1c; color: #ef9a9a; }
+  .ctrl-stop:hover { background: #c62828; }
 </style>
 </head>
 <body>
@@ -135,6 +142,7 @@
         <th onclick="sortTable('drink')">체력<span class="sort-arrow" id="sort_drink"></span></th>
         <th onclick="sortTable('gold')">골드<span class="sort-arrow" id="sort_gold"></span></th>
         <th onclick="sortTable('last_update')">업데이트<span class="sort-arrow" id="sort_last_update"></span></th>
+        <th>제어</th>
       </tr>
     </thead>
     <tbody id="statusTable"></tbody>
@@ -313,6 +321,14 @@ function render(data) {
     const bagStr = total > 0 ? `${item}/${total} (${bagPct}%)` : '-';
     const bagWarn = total > 0 && bagFree < 4;
 
+    const isWaiting = status === '대기중';
+    const isRunning = status === '갈엎중' || status === '정산중';
+    const ctrlHtml = isWaiting
+      ? `<button class="ctrl-btn ctrl-run" onclick="sendCommand(event,'${d.pc_id}',${d.device_id},'run')">▶ 시작</button>`
+      : isRunning
+      ? `<button class="ctrl-btn ctrl-stop" onclick="sendCommand(event,'${d.pc_id}',${d.device_id},'stop')">■ 정지</button>`
+      : '';
+
     return `<tr class="${stale ? 'stale-row' : ''}" onclick="selectDevice('${d.pc_id}',${d.device_id},'${(d.name||'').replace(/'/g,"\\'")}')">
       <td>${d.pc_id}</td>
       <td>${d.device_id}</td>
@@ -324,6 +340,7 @@ function render(data) {
       <td class="${drink < 2 ? 'warn' : ''}">${d.drink || '-'}</td>
       <td class="gold">${formatGold(d.gold)}</td>
       <td class="${stale ? 'warn' : ''}">${timeSince(d.last_update)}</td>
+      <td>${ctrlHtml}</td>
     </tr>`;
   }).join('');
 }
@@ -488,6 +505,30 @@ async function refreshQueue() {
       </div>`;
     }).join('');
   } catch(e) {}
+}
+
+async function sendCommand(evt, pcId, deviceId, command) {
+  evt.stopPropagation();
+  try {
+    const filter = `pc_id=eq.${encodeURIComponent(pcId)}&device_id=eq.${deviceId}`;
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/status?${filter}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ command })
+    });
+    if (res.ok) {
+      const label = command === 'run' ? '시작' : '정지';
+      showToast(`${pcId}-#${deviceId} ${label} 명령 전송`);
+    } else {
+      showToast('명령 전송 실패', true);
+    }
+  } catch(e) {
+    showToast(`오류: ${e.message}`, true);
+  }
 }
 
 async function refresh() {
