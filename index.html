@@ -47,7 +47,9 @@
   .table-wrap { background: #16213e; border-radius: 8px; padding: 12px; overflow-x: auto; }
   .table-wrap h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { background: #0f3460; color: #aaa; padding: 6px 8px; text-align: left; white-space: nowrap; }
+  th { background: #0f3460; color: #aaa; padding: 6px 8px; text-align: left; white-space: nowrap; cursor: pointer; user-select: none; }
+  th:hover { color: #fff; }
+  th .sort-arrow { font-size: 10px; margin-left: 3px; }
   td { padding: 5px 8px; border-bottom: 1px solid #1a1a3e; white-space: nowrap; }
   tr:hover { background: #1a2a4e; cursor: pointer; }
   tr.selected-row { background: #2a3a6e !important; outline: 1px solid #4a7aff; }
@@ -123,9 +125,16 @@
   <table>
     <thead>
       <tr>
-        <th>PC</th><th>#</th><th>이름</th><th>상태</th>
-        <th>가방</th><th>고미</th><th>시균</th><th>체력</th>
-        <th>골드</th><th>업데이트</th>
+        <th onclick="sortTable('pc_id')">PC<span class="sort-arrow" id="sort_pc_id"></span></th>
+        <th onclick="sortTable('device_id')">#<span class="sort-arrow" id="sort_device_id"></span></th>
+        <th onclick="sortTable('name')">이름<span class="sort-arrow" id="sort_name"></span></th>
+        <th onclick="sortTable('status')">상태<span class="sort-arrow" id="sort_status"></span></th>
+        <th onclick="sortTable('bag_pct')">가방<span class="sort-arrow" id="sort_bag_pct"></span></th>
+        <th onclick="sortTable('high_mineral')">고미<span class="sort-arrow" id="sort_high_mineral"></span></th>
+        <th onclick="sortTable('crack_time')">시균<span class="sort-arrow" id="sort_crack_time"></span></th>
+        <th onclick="sortTable('drink')">체력<span class="sort-arrow" id="sort_drink"></span></th>
+        <th onclick="sortTable('gold')">골드<span class="sort-arrow" id="sort_gold"></span></th>
+        <th onclick="sortTable('last_update')">업데이트<span class="sort-arrow" id="sort_last_update"></span></th>
       </tr>
     </thead>
     <tbody id="statusTable"></tbody>
@@ -138,7 +147,10 @@
     <label>PC</label>
     <select id="sellPc"><option value="PC7">PC7</option></select>
     <label>디바이스</label>
-    <input type="text" id="sellDevice" value="자동 (수량 최대)" readonly style="color:#888;cursor:default">
+    <div style="display:flex;gap:4px">
+      <input type="text" id="sellDevice" value="자동 (수량 최대)" readonly style="color:#888;cursor:default;flex:1">
+      <button onclick="clearDeviceSelection()" style="background:#442222;border:none;color:#ff6b6b;padding:0 8px;border-radius:4px;cursor:pointer;font-size:13px">✕</button>
+    </div>
     <input type="hidden" id="sellDeviceId" value="">
     <label>구매자</label>
     <input type="text" id="sellName" placeholder="구매자 이름">
@@ -192,8 +204,19 @@ function isStale(iso) {
 }
 
 function render(data) {
+  lastData = data;
   const now = new Date().toLocaleTimeString('ko-KR');
   document.getElementById('updateInfo').textContent = `마지막 갱신: ${now} | ${data.length}대`;
+
+  // 정렬
+  data = [...data].sort((a, b) => {
+    const va = getSortValue(a, currentSort.key);
+    const vb = getSortValue(b, currentSort.key);
+    let cmp = 0;
+    if (typeof va === 'number' && typeof vb === 'number') cmp = va - vb;
+    else cmp = String(va).localeCompare(String(vb));
+    return currentSort.asc ? cmp : -cmp;
+  });
 
   // 경고: 가방
   const bagWarns = data.filter(d => {
@@ -303,6 +326,39 @@ function render(data) {
       <td class="${stale ? 'warn' : ''}">${timeSince(d.last_update)}</td>
     </tr>`;
   }).join('');
+}
+
+let currentSort = { key: 'device_id', asc: true };
+let lastData = [];
+
+function sortTable(key) {
+  if (currentSort.key === key) {
+    currentSort.asc = !currentSort.asc;
+  } else {
+    currentSort.key = key;
+    currentSort.asc = true;
+  }
+  // 화살표 표시
+  document.querySelectorAll('.sort-arrow').forEach(el => el.textContent = '');
+  const arrow = document.getElementById(`sort_${key}`);
+  if (arrow) arrow.textContent = currentSort.asc ? ' ▲' : ' ▼';
+  if (lastData.length) render(lastData);
+}
+
+function getSortValue(d, key) {
+  switch(key) {
+    case 'bag_pct':
+      const item = parseInt(d.item_cnt) || 0;
+      const total = parseInt(d.total_cnt) || 0;
+      return total > 0 ? item / total : -1;
+    case 'high_mineral': return parseInt(d.high_mineral) || 0;
+    case 'crack_time': return parseInt(d.crack_time) || 0;
+    case 'drink': return parseInt(d.drink) || -1;
+    case 'gold': return parseInt((d.gold || '0').replace(/,/g, '')) || 0;
+    case 'device_id': return d.device_id || 0;
+    case 'last_update': return d.last_update ? new Date(d.last_update).getTime() : 0;
+    default: return d[key] || '';
+  }
 }
 
 // Sell 반복 콤보 초기화
