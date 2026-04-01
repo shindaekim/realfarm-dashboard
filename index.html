@@ -140,7 +140,24 @@
   <canvas id="goldChart"></canvas>
 </div>
 
-<div class="table-wrap">
+<div class="table-wrap" style="margin-top:12px">
+  <h3>📊 최근 판매 이력 (100건)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>시간</th>
+        <th>PC</th>
+        <th>디바이스</th>
+        <th>구매자</th>
+        <th>아이템</th>
+        <th>총 판매가격</th>
+      </tr>
+    </thead>
+    <tbody id="saleHistoryTable"><tr><td colspan="6" style="color:#666">로딩 중...</td></tr></tbody>
+  </table>
+</div>
+
+<div class="table-wrap" style="margin-top:12px">
   <h3>디바이스 상세</h3>
   <table>
     <thead>
@@ -208,23 +225,6 @@
   </div>
 </div>
 <div class="sell-toast" id="sellToast"></div>
-
-<div class="table-wrap" style="margin-top:12px">
-  <h3>📊 최근 판매 이력 (100건)</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>시간</th>
-        <th>PC</th>
-        <th>디바이스</th>
-        <th>구매자</th>
-        <th>아이템</th>
-        <th>총 판매가격</th>
-      </tr>
-    </thead>
-    <tbody id="saleHistoryTable"><tr><td colspan="6" style="color:#666">로딩 중...</td></tr></tbody>
-  </table>
-</div>
 
 <script>
 const SUPABASE_URL = 'https://vszizoahwfjvcoxrjygr.supabase.co';
