@@ -37,6 +37,7 @@
   .status-대기중 { background: #666; }
   .status-감시중 { background: #4caf50; }
   .status-배급중 { background: #9c27b0; }
+  .status-구매중 { background: #ff9800; }
 
   /* 도넛 차트 */
   .donut-wrap { display: flex; align-items: center; gap: 16px; }
@@ -62,6 +63,7 @@
   .tag-대기중 { background: #333; color: #999; }
   .tag-감시중 { background: #1b5e20; color: #a5d6a7; }
   .tag-배급중 { background: #4a148c; color: #ce93d8; }
+  .tag-구매중 { background: #e65100; color: #ffcc80; }
   .warn { color: #ff4444; font-weight: bold; }
   .stale-row { opacity: 0.5; }
   .gold { color: #ffd700; }
@@ -432,7 +434,7 @@ function render(data) {
     const bagWarn = total > 0 && bagFree < 4;
 
     const isWaiting = status === '대기중';
-    const isRunning = status === '갈엎중' || status === '정산중' || status === '감시중' || status === '배급중';
+    const isRunning = status === '갈엎중' || status === '정산중' || status === '감시중' || status === '배급중' || status === '구매중';
     const ctrlHtml = isWaiting
       ? `<button class="ctrl-btn ctrl-run" onclick="sendCommand(event,'${d.pc_id}',${d.device_id},'run')">▶ 시작</button>`
       : isRunning
@@ -837,17 +839,16 @@ async function refreshDailySummary() {
       diffEl.style.color = '#666';
     }
 
-    // 오늘 판매 수량
+    // 오늘 판매 수량 (daily_summary 테이블)
     const today = new Date().toISOString().slice(0, 10);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/sale_history?select=item,count&created_at=gte.${today}T00:00:00`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/daily_summary?recorded_date=eq.${today}&select=hm_count,ct_count`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
-    const sales = await res.json();
+    const rows = await res.json();
     let hmCount = 0, ctCount = 0;
-    sales.forEach(r => {
-      const cnt = parseInt(r.count) || 1;
-      if (r.item === 'high_mineral') hmCount += cnt;
-      else if (r.item === 'crack_time') ctCount += cnt;
+    rows.forEach(r => {
+      hmCount += parseInt(r.hm_count) || 0;
+      ctCount += parseInt(r.ct_count) || 0;
     });
     document.getElementById('dailyHmCount').textContent = hmCount + '개';
     document.getElementById('dailyHmCount').style.color = '#e91e63';
