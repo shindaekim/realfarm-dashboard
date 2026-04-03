@@ -93,12 +93,8 @@
   .sell-toast { position: fixed; bottom: 20px; right: 20px; background: #4caf50; color: #fff; padding: 10px 20px; border-radius: 6px; font-size: 13px; display: none; z-index: 100; }
   .sell-toast.error { background: #f44336; }
 
-  /* 골드 트렌드 + 하루 정산 */
-  .gold-row { display: flex; gap: 12px; margin-bottom: 12px; }
-  .gold-trend { flex: 1; background: #16213e; border-radius: 8px; padding: 12px; }
-  .gold-trend h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; }
-  .gold-trend canvas { width: 100%; height: 250px; }
-  .daily-summary { flex: 1; background: #16213e; border-radius: 8px; padding: 12px; }
+  /* 하루 정산 */
+  .daily-summary { background: #16213e; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
   .daily-summary h3 { font-size: 13px; color: #aaa; margin-bottom: 12px; }
   .summary-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; margin-bottom: 8px; background: #1a1a3e; border-radius: 6px; }
   .summary-item .label { font-size: 13px; color: #aaa; }
@@ -143,26 +139,22 @@
   </div>
 </div>
 
-<div class="gold-row">
-  <div class="gold-trend">
-    <h3>💰 골드 트렌드 (30일)</h3>
-    <canvas id="goldChart"></canvas>
-  </div>
-  <div class="daily-summary">
-    <h3>📋 오늘의 정산</h3>
-    <div class="summary-item">
+<div class="daily-summary">
+  <h3>📋 오늘의 정산</h3>
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <div class="summary-item" style="flex:1">
       <span class="label">총 판매 예상액</span>
       <span class="value" id="dailyGoldDiff" style="color:#666">-</span>
     </div>
-    <div class="summary-item">
+    <div class="summary-item" style="flex:1">
       <span class="label">고미 판매</span>
       <span class="value" id="dailyHmCount" style="color:#666">-</span>
     </div>
-    <div class="summary-item">
+    <div class="summary-item" style="flex:1">
       <span class="label">시균 판매</span>
       <span class="value" id="dailyCtCount" style="color:#666">-</span>
     </div>
-    <div class="summary-item" style="margin-top:16px;border-top:1px solid #2a2a4e;padding-top:16px">
+    <div class="summary-item" style="flex:1">
       <span class="label">전체 보유 골드</span>
       <span class="value" id="totalGold" style="color:#666">-</span>
     </div>
@@ -286,44 +278,6 @@ function timeSince(iso) {
 function isStale(iso) {
   if (!iso) return true;
   return (Date.now() - new Date(iso).getTime()) > 120000; // 2분
-}
-
-// 골드 전일 대비 차이 맵: "pcId-deviceId" → diff
-let goldDiffMap = {};
-
-async function fetchGoldDiff() {
-  const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() + 9 * 3600000 - 86400000).toISOString().slice(0, 10);
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/gold_history?recorded_date=in.(${yesterday},${today})&order=recorded_date.asc`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
-    const rows = await res.json();
-    const map = {}; // "pcId-deviceId-date" → gold
-    rows.forEach(r => {
-      map[`${r.pc_id}-${r.device_id}-${r.recorded_date}`] = parseGoldNum(r.gold);
-    });
-    goldDiffMap = {};
-    const keys = new Set(rows.map(r => `${r.pc_id}-${r.device_id}`));
-    keys.forEach(k => {
-      const todayGold = map[`${k}-${today}`] || 0;
-      const yesterdayGold = map[`${k}-${yesterday}`] || 0;
-      if (todayGold > 0 && yesterdayGold > 0)
-        goldDiffMap[k] = todayGold - yesterdayGold;
-    });
-  } catch(e) {}
-}
-
-function formatGoldDiff(diff) {
-  if (!diff) return '';
-  const sign = diff >= 0 ? '+' : '';
-  const color = diff >= 0 ? '#4caf50' : '#ff4444';
-  const abs = Math.abs(diff);
-  let str;
-  if (abs >= 100000000) str = (abs / 100000000).toFixed(1) + '억';
-  else if (abs >= 10000) str = (abs / 10000).toFixed(0) + '만';
-  else str = abs.toLocaleString();
-  return `<span style="font-size:10px;color:${color}">${sign}${diff >= 0 ? str : '-' + str}</span>`;
 }
 
 function render(data) {
@@ -471,7 +425,7 @@ function render(data) {
       <td>${d.high_mineral || '-'}</td>
       <td>${d.crack_time || '-'}</td>
       <td class="${drink < 2 ? 'warn' : ''}">${d.drink || '-'}${parseInt(d.post_drink) > 0 ? '(' + d.post_drink + ')' : ''}</td>
-      <td class="gold">${formatGold(d.gold)} ${formatGoldDiff(goldDiffMap[d.pc_id + '-' + d.device_id])}</td>
+      <td class="gold">${formatGold(d.gold)}</td>
       <td class="${stale ? 'warn' : ''}">${timeSince(d.last_update)}</td>
     </tr>`;
   }).join('');
@@ -671,165 +625,16 @@ async function sendCommand(evt, pcId, deviceId, command) {
   }
 }
 
-// ── 골드 트렌드 ──
-const GOLD_COLORS = ['#ffd700','#e91e63','#2196f3','#4caf50','#ff9800','#9c27b0','#00bcd4','#ff5722','#8bc34a','#3f51b5',
-  '#cddc39','#009688','#795548','#607d8f','#f44336','#03a9f4','#ffeb3b','#673ab7','#76ff03','#ff1744'];
-
-async function fetchGoldHistory() {
-  const since = new Date(Date.now() - 30*86400000).toISOString().slice(0,10);
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/gold_history?recorded_date=gte.${since}&order=recorded_date.asc`, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-  });
-  return await res.json();
-}
-
 function parseGoldNum(g) {
   if (!g) return 0;
   return parseInt(g.replace(/,/g, '')) || 0;
 }
 
-function renderGoldChart(rows) {
-  const canvas = document.getElementById('goldChart');
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = 250 * dpr;
-  canvas.style.height = '250px';
-  ctx.scale(dpr, dpr);
-  const W = rect.width, H = 250;
-  const pad = { top: 20, right: 20, bottom: 40, left: 70 };
-
-  // 데이터 그룹핑: { "PC7-#1 이름": { "2025-03-01": 12345, ... } }
-  const devices = {};
-  rows.forEach(r => {
-    const key = `${r.pc_id}-#${r.device_id} ${r.name||''}`;
-    if (!devices[key]) devices[key] = {};
-    devices[key][r.recorded_date] = parseGoldNum(r.gold);
-  });
-
-  // 날짜 목록
-  const dates = [...new Set(rows.map(r => r.recorded_date))].sort();
-  if (dates.length === 0) {
-    ctx.fillStyle = '#666'; ctx.font = '13px sans-serif';
-    ctx.fillText('골드 기록이 없습니다', W/2-60, H/2);
-    return;
-  }
-
-  const deviceKeys = Object.keys(devices).sort();
-
-  // Y축 범위 (보유 골드)
-  let minY = Infinity, maxY = 0;
-  deviceKeys.forEach(dk => {
-    dates.forEach(d => {
-      const v = devices[dk][d];
-      if (v === undefined) return;
-      if (v < minY) minY = v;
-      if (v > maxY) maxY = v;
-    });
-  });
-  if (minY === Infinity) minY = 0;
-  if (minY === maxY) { maxY = minY + 1000; }
-  const yRange = maxY - minY;
-  minY -= yRange * 0.1;
-  maxY += yRange * 0.1;
-
-  const plotW = W - pad.left - pad.right;
-  const plotH = H - pad.top - pad.bottom;
-  const xStep = dates.length > 1 ? plotW / (dates.length - 1) : plotW;
-
-  function toX(i) { return pad.left + (dates.length > 1 ? i * xStep : plotW/2); }
-  function toY(v) { return pad.top + plotH - ((v - minY) / (maxY - minY)) * plotH; }
-
-  // 배경
-  ctx.clearRect(0, 0, W, H);
-
-  // Y축 그리드
-  ctx.fillStyle = '#666'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
-  const yTicks = 5;
-  for (let i = 0; i <= yTicks; i++) {
-    const v = minY + (maxY - minY) * i / yTicks;
-    const y = toY(v);
-    ctx.strokeStyle = '#1a2a4e'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W-pad.right, y); ctx.stroke();
-    let label;
-    if (Math.abs(v) >= 100000000) label = (v/100000000).toFixed(1)+'억';
-    else if (Math.abs(v) >= 10000) label = (v/10000).toFixed(0)+'만';
-    else label = Math.round(v).toString();
-    ctx.fillText(label, pad.left - 6, y + 4);
-  }
-
-  // X축 날짜
-  ctx.fillStyle = '#666'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
-  const labelStep = Math.max(1, Math.floor(dates.length / 10));
-  dates.forEach((d, i) => {
-    if (i % labelStep === 0 || i === dates.length - 1) {
-      ctx.fillText(d.slice(5), toX(i), H - pad.bottom + 16);
-    }
-  });
-
-  // 라인 그리기
-  deviceKeys.forEach((dk, di) => {
-    const color = GOLD_COLORS[di % GOLD_COLORS.length];
-    ctx.strokeStyle = color; ctx.lineWidth = 2;
-    ctx.beginPath();
-    let started = false;
-    dates.forEach((d, i) => {
-      const v = devices[dk][d];
-      if (v === undefined) return;
-      const x = toX(i), y = toY(v);
-      if (!started) { ctx.moveTo(x, y); started = true; }
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-
-    // 마지막 포인트에 점
-    const lastDate = dates[dates.length - 1];
-    const lastVal = devices[dk][lastDate];
-    if (lastVal !== undefined) {
-      ctx.fillStyle = color;
-      ctx.beginPath(); ctx.arc(toX(dates.length-1), toY(lastVal), 3, 0, Math.PI*2); ctx.fill();
-    }
-  });
-
-}
-
-async function refreshGoldTrend() {
-  try {
-    const rows = await fetchGoldHistory();
-    if (!Array.isArray(rows) || rows.length === 0) {
-      const canvas = document.getElementById('goldChart');
-      const ctx2 = canvas.getContext('2d');
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * (window.devicePixelRatio||1);
-      canvas.height = 250 * (window.devicePixelRatio||1);
-      canvas.style.height = '250px';
-      ctx2.scale(window.devicePixelRatio||1, window.devicePixelRatio||1);
-      ctx2.fillStyle = '#666'; ctx2.font = '13px sans-serif';
-      ctx2.fillText('골드 기록이 없습니다', rect.width/2-60, 125);
-      return;
-    }
-    renderGoldChart(rows);
-  } catch(e) {
-    const canvas = document.getElementById('goldChart');
-    const ctx2 = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * (window.devicePixelRatio||1);
-    canvas.height = 250 * (window.devicePixelRatio||1);
-    canvas.style.height = '250px';
-    ctx2.scale(window.devicePixelRatio||1, window.devicePixelRatio||1);
-    ctx2.fillStyle = '#666'; ctx2.font = '13px sans-serif';
-    ctx2.fillText('골드 트렌드 로드 실패', rect.width/2-60, 125);
-  }
-}
-
 async function refresh() {
   try {
-    await fetchGoldDiff();
     const data = await fetchStatus();
     render(data);
     refreshQueue();
-    refreshGoldTrend();
     refreshDailySummary();
     refreshSaleHistory();
   } catch (e) {
