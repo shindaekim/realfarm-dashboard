@@ -162,6 +162,10 @@
       <span class="label">시균 판매</span>
       <span class="value" id="dailyCtCount" style="color:#666">-</span>
     </div>
+    <div class="summary-item" style="margin-top:16px;border-top:1px solid #2a2a4e;padding-top:16px">
+      <span class="label">전체 보유 골드</span>
+      <span class="value" id="totalGold" style="color:#666">-</span>
+    </div>
   </div>
 </div>
 
@@ -326,6 +330,22 @@ function render(data) {
   lastData = data;
   const now = new Date().toLocaleTimeString('ko-KR');
   document.getElementById('updateInfo').textContent = `마지막 갱신: ${now} | ${data.length}대`;
+
+  // 전체 보유 골드 합산
+  let totalGold = 0;
+  data.forEach(d => { totalGold += parseGoldNum(d.gold); });
+  const totalGoldEl = document.getElementById('totalGold');
+  if (totalGold > 0) {
+    let str;
+    if (totalGold >= 100000000) str = (totalGold / 100000000).toFixed(1) + '억';
+    else if (totalGold >= 10000) str = Math.round(totalGold / 10000).toLocaleString() + '만';
+    else str = totalGold.toLocaleString();
+    totalGoldEl.textContent = str;
+    totalGoldEl.style.color = '#ffd700';
+  } else {
+    totalGoldEl.textContent = '-';
+    totalGoldEl.style.color = '#666';
+  }
 
   // 정렬
   data = [...data].sort((a, b) => {
