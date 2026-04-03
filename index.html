@@ -151,7 +151,7 @@
   <div class="daily-summary">
     <h3>📋 오늘의 정산</h3>
     <div class="summary-item">
-      <span class="label">골드 증감</span>
+      <span class="label">총 판매액</span>
       <span class="value" id="dailyGoldDiff" style="color:#666">-</span>
     </div>
     <div class="summary-item">
@@ -820,37 +820,32 @@ async function refresh() {
 
 async function refreshDailySummary() {
   try {
-    // 골드 증감 합계
-    let totalDiff = 0;
-    let hasDiff = false;
-    Object.values(goldDiffMap).forEach(v => { totalDiff += v; hasDiff = true; });
-    const diffEl = document.getElementById('dailyGoldDiff');
-    if (hasDiff) {
-      const sign = totalDiff >= 0 ? '+' : '';
-      const abs = Math.abs(totalDiff);
-      let str;
-      if (abs >= 100000000) str = (abs / 100000000).toFixed(1) + '억';
-      else if (abs >= 10000) str = Math.round(abs / 10000).toLocaleString() + '만';
-      else str = abs.toLocaleString();
-      diffEl.textContent = `${sign}${totalDiff >= 0 ? '' : '-'}${str}`;
-      diffEl.style.color = totalDiff >= 0 ? '#4caf50' : '#ff4444';
-    } else {
-      diffEl.textContent = '-';
-      diffEl.style.color = '#666';
-    }
-
-    // 오늘 판매 수량 (daily_summary 테이블) - 한국 시간 기준
+    // 오늘 판매 수량 + 판매액 (daily_summary 테이블) - 한국 시간 기준
     const now = new Date(Date.now() + 9 * 3600000);
     const today = now.toISOString().slice(0, 10);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/daily_summary?recorded_date=eq.${today}&select=hm_count,ct_count`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/daily_summary?recorded_date=eq.${today}&select=hm_count,ct_count,total_sales`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
     const rows = await res.json();
-    let hmCount = 0, ctCount = 0;
+    let hmCount = 0, ctCount = 0, totalSales = 0;
     rows.forEach(r => {
       hmCount += parseInt(r.hm_count) || 0;
       ctCount += parseInt(r.ct_count) || 0;
+      totalSales += parseInt(r.total_sales) || 0;
     });
+
+    const salesEl = document.getElementById('dailyGoldDiff');
+    if (totalSales > 0) {
+      let str;
+      if (totalSales >= 100000000) str = (totalSales / 100000000).toFixed(1) + '억';
+      else if (totalSales >= 10000) str = Math.round(totalSales / 10000).toLocaleString() + '만';
+      else str = totalSales.toLocaleString();
+      salesEl.textContent = str;
+      salesEl.style.color = '#ffd700';
+    } else {
+      salesEl.textContent = '-';
+      salesEl.style.color = '#666';
+    }
     document.getElementById('dailyHmCount').textContent = hmCount + '개';
     document.getElementById('dailyHmCount').style.color = '#e91e63';
     document.getElementById('dailyCtCount').textContent = ctCount + '개';
