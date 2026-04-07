@@ -213,8 +213,10 @@
     <input type="hidden" id="sellDeviceId" value="">
     <label>구매자</label>
     <input type="text" id="sellName" placeholder="구매자 이름">
-    <input type="hidden" id="sellPrice" value="3000">
-    <input type="hidden" id="sellCount" value="1">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+      <div><label>가격</label><input type="number" id="sellPrice" value="3000" min="100" max="99999" style="width:100%"></div>
+      <div><label>수량</label><input type="number" id="sellCount" value="1" min="1" max="99" style="width:100%"></div>
+    </div>
     <label>고미</label>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:6px">
       <button class="btn-hm" onclick="quickSell('high_mineral',2900,1)" style="font-size:11px;padding:6px">2900x1</button>
@@ -227,6 +229,9 @@
       <button class="btn-hm" onclick="quickSell('high_mineral',3100,2)" style="font-size:11px;padding:6px">3100x2</button>
       <button class="btn-hm" onclick="quickSell('high_mineral',3100,3)" style="font-size:11px;padding:6px">3100x3</button>
     </div>
+    <div style="display:flex;gap:4px;margin-bottom:6px">
+      <button class="btn-hm" onclick="manualSell('high_mineral')" style="flex:1;font-size:12px;padding:8px">고미 직접 주문</button>
+    </div>
     <label>시균</label>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">
       <button class="btn-ct" onclick="quickSell('crack_time',2900,1)" style="font-size:11px;padding:6px">2900x1</button>
@@ -238,6 +243,9 @@
       <button class="btn-ct" onclick="quickSell('crack_time',3100,1)" style="font-size:11px;padding:6px">3100x1</button>
       <button class="btn-ct" onclick="quickSell('crack_time',3100,2)" style="font-size:11px;padding:6px">3100x2</button>
       <button class="btn-ct" onclick="quickSell('crack_time',3100,3)" style="font-size:11px;padding:6px">3100x3</button>
+    </div>
+    <div style="display:flex;gap:4px;margin-top:4px">
+      <button class="btn-ct" onclick="manualSell('crack_time')" style="flex:1;font-size:12px;padding:8px">시균 직접 주문</button>
     </div>
   </div>
   <div class="sell-queue">
@@ -598,6 +606,16 @@ function quickSell(item, price, count) {
   if (!name) { showToast('구매자 이름을 입력하세요', true); return; }
   document.getElementById('sellPrice').value = price;
   document.getElementById('sellCount').value = count;
+  submitSell(item);
+}
+
+function manualSell(item) {
+  const name = document.getElementById('sellName').value.trim();
+  if (!name) { showToast('구매자 이름을 입력하세요', true); return; }
+  const price = parseInt(document.getElementById('sellPrice').value);
+  const count = parseInt(document.getElementById('sellCount').value);
+  if (!price || price < 100) { showToast('가격을 올바르게 입력하세요', true); return; }
+  if (!count || count < 1) { showToast('수량을 올바르게 입력하세요', true); return; }
   submitSell(item);
 }
 
