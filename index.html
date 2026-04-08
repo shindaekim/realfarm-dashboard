@@ -698,6 +698,19 @@ async function toggleFixedTrade(id, enabled) {
   refreshTradeStatus();
 }
 
+async function updateFixedTrade(id, field, value) {
+  try {
+    const body = {};
+    body[field] = value;
+    await fetch(`${SUPABASE_URL}/rest/v1/fixed_trades?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    refreshTradeStatus();
+  } catch(e) { showToast(`수정 실패: ${e.message}`, true); }
+}
+
 async function refreshTradeStatus() {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/fixed_trades?select=*&order=id.asc`, {
@@ -711,6 +724,7 @@ async function refreshTradeStatus() {
       el.innerHTML = '<div class="empty" style="color:#666">고정거래 설정 없음</div>';
       return;
     }
+    const editStyle = 'background:#1a1a2e;color:#eee;border:1px solid #444;border-radius:3px;padding:2px 4px;font-size:12px;';
     el.innerHTML = `<table style="width:100%;border-collapse:collapse">
       <tr style="color:#888;border-bottom:1px solid #333">
         <th style="text-align:left;padding:4px">구매자</th>
@@ -722,20 +736,19 @@ async function refreshTradeStatus() {
         <th style="text-align:center;padding:4px"></th>
       </tr>
       ${fixed.map(f => {
-        const label = f.item === 'high_mineral' ? '고미' : '시균';
-        const cls = f.item === 'high_mineral' ? 'color:#ff9800' : 'color:#2196f3';
         const sent = (f.last_sent_date === today) ? (f.daily_sent || 0) : 0;
         const max = f.daily_max || '∞';
         const pct = f.daily_max > 0 ? Math.min(100, Math.round(sent / f.daily_max * 100)) : '-';
         const pctColor = f.daily_max > 0 && sent >= f.daily_max ? '#4caf50' : '#ff9800';
         const opacity = f.enabled ? '1' : '0.4';
-        const toggleLabel = f.enabled ? '⏸' : '▶';
+        const hmSel = f.item === 'high_mineral' ? 'selected' : '';
+        const ctSel = f.item === 'crack_time' ? 'selected' : '';
         return `<tr style="border-bottom:1px solid #222;opacity:${opacity}">
-          <td style="padding:4px">${f.buyer}</td>
-          <td style="padding:4px;${cls}">${label}</td>
-          <td style="padding:4px">${f.price}</td>
+          <td style="padding:4px"><input value="${f.buyer}" style="${editStyle}width:80px" onchange="updateFixedTrade(${f.id},'buyer',this.value)"></td>
+          <td style="padding:4px"><select style="${editStyle}width:55px" onchange="updateFixedTrade(${f.id},'item',this.value)"><option value="high_mineral" ${hmSel}>고미</option><option value="crack_time" ${ctSel}>시균</option></select></td>
+          <td style="padding:4px"><input type="number" value="${f.price}" style="${editStyle}width:60px" onchange="updateFixedTrade(${f.id},'price',parseInt(this.value))"></td>
           <td style="text-align:right;padding:4px;font-weight:bold">${sent}</td>
-          <td style="text-align:right;padding:4px;color:#888">${max}</td>
+          <td style="text-align:right;padding:4px"><input type="number" value="${f.daily_max||0}" style="${editStyle}width:45px;text-align:right" onchange="updateFixedTrade(${f.id},'daily_max',parseInt(this.value))"></td>
           <td style="text-align:right;padding:4px;color:${pctColor};font-weight:bold">${pct}${f.daily_max > 0 ? '%' : ''}</td>
           <td style="text-align:center;padding:4px;white-space:nowrap">
             <button onclick="toggleFixedTrade(${f.id},${!f.enabled})" style="background:${f.enabled?'#4caf50':'#555'};border:none;color:#fff;cursor:pointer;font-size:11px;padding:3px 8px;border-radius:10px;min-width:36px">${f.enabled?'ON':'OFF'}</button>
