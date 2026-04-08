@@ -324,14 +324,19 @@ function render(data) {
     totalGoldEl.style.color = '#666';
   }
 
-  // 정렬
+  // 정렬: 선택 키 기준 + pc_id→device_id 2차 정렬
   data = [...data].sort((a, b) => {
     const va = getSortValue(a, currentSort.key);
     const vb = getSortValue(b, currentSort.key);
     let cmp = 0;
     if (typeof va === 'number' && typeof vb === 'number') cmp = va - vb;
     else cmp = String(va).localeCompare(String(vb));
-    return currentSort.asc ? cmp : -cmp;
+    if (!currentSort.asc) cmp = -cmp;
+    if (cmp !== 0) return cmp;
+    // 2차: pc_id → device_id
+    const pcCmp = String(a.pc_id || '').localeCompare(String(b.pc_id || ''));
+    if (pcCmp !== 0) return pcCmp;
+    return (a.device_id || 0) - (b.device_id || 0);
   });
 
   // 경고: 가방
@@ -454,7 +459,7 @@ function render(data) {
   }).join('');
 }
 
-let currentSort = { key: 'device_id', asc: true };
+let currentSort = { key: 'pc_id', asc: true };
 let lastData = [];
 
 function sortTable(key) {
