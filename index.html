@@ -737,8 +737,8 @@ async function refreshTradeStatus() {
           <td style="text-align:right;padding:4px;font-weight:bold">${sent}</td>
           <td style="text-align:right;padding:4px;color:#888">${max}</td>
           <td style="text-align:right;padding:4px;color:${pctColor};font-weight:bold">${pct}${f.daily_max > 0 ? '%' : ''}</td>
-          <td style="text-align:center;padding:4px">
-            <button onclick="toggleFixedTrade(${f.id},${!f.enabled})" style="background:none;border:none;cursor:pointer;font-size:12px" title="${f.enabled?'비활성':'활성'}">${toggleLabel}</button>
+          <td style="text-align:center;padding:4px;white-space:nowrap">
+            <button onclick="toggleFixedTrade(${f.id},${!f.enabled})" style="background:${f.enabled?'#4caf50':'#555'};border:none;color:#fff;cursor:pointer;font-size:11px;padding:3px 8px;border-radius:10px;min-width:36px">${f.enabled?'ON':'OFF'}</button>
             <button onclick="deleteFixedTrade(${f.id})" style="background:none;border:none;cursor:pointer;color:#ff4444;font-size:12px" title="삭제">✕</button>
           </td>
         </tr>`;
