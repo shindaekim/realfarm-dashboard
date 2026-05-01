@@ -38,6 +38,10 @@
   .status-감시중 { background: #4caf50; }
   .status-배급중 { background: #9c27b0; }
   .status-구매중 { background: #ff9800; }
+  .status-타임제조중 { background: #9c27b0; }
+  .status-타임수확중 { background: #4caf50; }
+  .status-드링크제조중 { background: #2196f3; }
+  .status-드링크수확중 { background: #00bcd4; }
 
   /* 도넛 차트 */
   .donut-wrap { display: flex; align-items: center; gap: 16px; }
@@ -64,6 +68,10 @@
   .tag-감시중 { background: #1b5e20; color: #a5d6a7; }
   .tag-배급중 { background: #4a148c; color: #ce93d8; }
   .tag-구매중 { background: #e65100; color: #ffcc80; }
+  .tag-타임제조중 { background: #6a1b9a; color: #ce93d8; }
+  .tag-타임수확중 { background: #2e7d32; color: #a5d6a7; }
+  .tag-드링크제조중 { background: #0d47a1; color: #90caf9; }
+  .tag-드링크수확중 { background: #00695c; color: #80cbc4; }
   .warn { color: #ff4444; font-weight: bold; }
   .stale-row { opacity: 0.5; }
   .gold { color: #ffd700; }
@@ -147,12 +155,28 @@
       <span class="value" id="dailyGoldDiff" style="color:#666">-</span>
     </div>
     <div class="summary-item" style="flex:1">
-      <span class="label">고미 판매</span>
+      <span class="label">고미</span>
       <span class="value" id="dailyHmCount" style="color:#666">-</span>
     </div>
     <div class="summary-item" style="flex:1">
-      <span class="label">시균 판매</span>
+      <span class="label">시균</span>
       <span class="value" id="dailyCtCount" style="color:#666">-</span>
+    </div>
+    <div class="summary-item" style="flex:1">
+      <span class="label">키토산</span>
+      <span class="value" id="dailyChitoCount" style="color:#666">-</span>
+    </div>
+    <div class="summary-item" style="flex:1">
+      <span class="label">타우린</span>
+      <span class="value" id="dailyTaurineCount" style="color:#666">-</span>
+    </div>
+    <div class="summary-item" style="flex:1">
+      <span class="label">타임</span>
+      <span class="value" id="dailyTimeCount" style="color:#666">-</span>
+    </div>
+    <div class="summary-item" style="flex:1">
+      <span class="label">드링크</span>
+      <span class="value" id="dailyDrinkCount" style="color:#666">-</span>
     </div>
     <div class="summary-item" style="flex:1">
       <span class="label">전체 보유 골드</span>
@@ -769,14 +793,18 @@ async function refreshDailySummary() {
     // 오늘 판매 수량 + 판매액 (daily_summary 테이블) - 한국 시간 기준
     const now = new Date(Date.now() + 9 * 3600000);
     const today = now.toISOString().slice(0, 10);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/daily_summary?recorded_date=eq.${today}&select=hm_count,ct_count,total_sales`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/daily_summary?recorded_date=eq.${today}&select=hm_count,ct_count,chitosan_count,taurine_count,time_count,drink_count,total_sales`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
     const rows = await res.json();
-    let hmCount = 0, ctCount = 0, totalSales = 0;
+    let hmCount = 0, ctCount = 0, chitoCount = 0, taurineCount = 0, timeCount = 0, drinkCount = 0, totalSales = 0;
     rows.forEach(r => {
       hmCount += parseInt(r.hm_count) || 0;
       ctCount += parseInt(r.ct_count) || 0;
+      chitoCount += parseInt(r.chitosan_count) || 0;
+      taurineCount += parseInt(r.taurine_count) || 0;
+      timeCount += parseInt(r.time_count) || 0;
+      drinkCount += parseInt(r.drink_count) || 0;
       totalSales += parseInt(r.total_sales) || 0;
     });
 
@@ -796,6 +824,14 @@ async function refreshDailySummary() {
     document.getElementById('dailyHmCount').style.color = '#e91e63';
     document.getElementById('dailyCtCount').textContent = ctCount + '개';
     document.getElementById('dailyCtCount').style.color = '#2196f3';
+    document.getElementById('dailyChitoCount').textContent = chitoCount + '개';
+    document.getElementById('dailyChitoCount').style.color = '#9c27b0';
+    document.getElementById('dailyTaurineCount').textContent = taurineCount + '개';
+    document.getElementById('dailyTaurineCount').style.color = '#00bcd4';
+    document.getElementById('dailyTimeCount').textContent = timeCount + '개';
+    document.getElementById('dailyTimeCount').style.color = '#ff9800';
+    document.getElementById('dailyDrinkCount').textContent = drinkCount + '개';
+    document.getElementById('dailyDrinkCount').style.color = '#4caf50';
   } catch(e) {}
 }
 
