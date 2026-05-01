@@ -120,7 +120,7 @@
     <div id="bagList"></div>
   </div>
   <div class="alert-box" id="drinkAlert">
-    <h3>💊 체력 경고 (&lt; 2)</h3>
+    <h3>💊 드링크 경고 (&lt; 2)</h3>
     <div id="drinkList"></div>
   </div>
 </div>
@@ -186,12 +186,16 @@
         <th onclick="sortTable('pc_id')">PC<span class="sort-arrow" id="sort_pc_id"></span></th>
         <th onclick="sortTable('device_id')">#<span class="sort-arrow" id="sort_device_id"></span></th>
         <th onclick="sortTable('name')">이름<span class="sort-arrow" id="sort_name"></span></th>
+        <th onclick="sortTable('bot_type')">봇<span class="sort-arrow" id="sort_bot_type"></span></th>
         <th>제어</th>
         <th onclick="sortTable('status')">상태<span class="sort-arrow" id="sort_status"></span></th>
         <th onclick="sortTable('bag_pct')">가방<span class="sort-arrow" id="sort_bag_pct"></span></th>
         <th onclick="sortTable('high_mineral')">고미<span class="sort-arrow" id="sort_high_mineral"></span></th>
         <th onclick="sortTable('crack_time')">시균<span class="sort-arrow" id="sort_crack_time"></span></th>
-        <th onclick="sortTable('drink')">체력<span class="sort-arrow" id="sort_drink"></span></th>
+        <th onclick="sortTable('chitosan')">키토<span class="sort-arrow" id="sort_chitosan"></span></th>
+        <th onclick="sortTable('taurine')">타우<span class="sort-arrow" id="sort_taurine"></span></th>
+        <th onclick="sortTable('time_qty')">타임<span class="sort-arrow" id="sort_time_qty"></span></th>
+        <th onclick="sortTable('drink')">드링크<span class="sort-arrow" id="sort_drink"></span></th>
         <th onclick="sortTable('gold')">골드<span class="sort-arrow" id="sort_gold"></span></th>
         <th onclick="sortTable('last_update')">업데이트<span class="sort-arrow" id="sort_last_update"></span></th>
       </tr>
@@ -259,7 +263,7 @@
   <div style="margin-top:10px;padding-top:10px;border-top:1px solid #333">
     <h4 style="font-size:13px;color:#aaa;margin-bottom:6px">고정거래 관리</h4>
     <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
-      <select id="ftItem" style="width:60px"><option value="high_mineral">고미</option><option value="crack_time">시균</option></select>
+      <select id="ftItem" style="width:70px"><option value="high_mineral">고미</option><option value="crack_time">시균</option><option value="chitosan">키토산</option><option value="taurine">타우린</option><option value="time">타임</option><option value="drink">드링크</option></select>
       <input type="text" id="ftBuyer" placeholder="구매자" style="width:90px">
       <input type="number" id="ftPrice" value="2800" min="100" max="99999" style="width:65px">
       <input type="number" id="ftDailyMax" value="0" min="0" max="999" style="width:50px" title="일일최대 (0=무제한)">
@@ -359,7 +363,7 @@ function render(data) {
     ).join('');
   }
 
-  // 경고: 체력
+  // 경고: 드링크
   const drinkWarns = data.filter(d => {
     if (d.drink == null || d.drink === '') return false;
     const drink = parseInt(d.drink);
@@ -370,11 +374,11 @@ function render(data) {
   const drinkList = document.getElementById('drinkList');
   if (drinkWarns.length === 0) {
     drinkBox.className = 'alert-box ok';
-    drinkBox.querySelector('h3').textContent = '💊 체력 정상';
+    drinkBox.querySelector('h3').textContent = '💊 드링크 정상';
     drinkList.innerHTML = '<div style="color:#6bff6b;font-size:12px">경고 없음</div>';
   } else {
     drinkBox.className = 'alert-box';
-    drinkBox.querySelector('h3').textContent = `💊 체력 경고 (${drinkWarns.length}대)`;
+    drinkBox.querySelector('h3').textContent = `💊 드링크 경고 (${drinkWarns.length}대)`;
     drinkList.innerHTML = drinkWarns.map(d =>
       `<div class="alert-item"><span class="name">${d.pc_id}-${d.device_id} ${d.name||''}</span><span class="val">${d.drink||0}</span></div>`
     ).join('');
@@ -447,11 +451,15 @@ function render(data) {
       <td>${d.pc_id}</td>
       <td>${d.device_id}</td>
       <td>${d.name || '-'}</td>
+      <td>${d.bot_type || '-'}</td>
       <td>${ctrlHtml}</td>
       <td><span class="tag tag-${status}">${status}</span></td>
       <td class="${bagWarn ? 'warn' : ''}">${bagStr}</td>
       <td>${d.high_mineral || '-'}</td>
       <td>${d.crack_time || '-'}</td>
+      <td>${d.chitosan || '-'}</td>
+      <td>${d.taurine || '-'}</td>
+      <td>${d.time_qty || '-'}</td>
       <td class="${drink < 2 ? 'warn' : ''}">${d.drink || '-'}${parseInt(d.post_drink) > 0 ? '(' + d.post_drink + ')' : ''}</td>
       <td class="gold">${formatGold(d.gold)}</td>
       <td class="${stale ? 'warn' : ''}">${timeSince(d.last_update)}</td>
@@ -746,11 +754,10 @@ async function refreshTradeStatus() {
         const pct = f.daily_max > 0 ? Math.min(100, Math.round(sent / f.daily_max * 100)) : '-';
         const pctColor = f.daily_max > 0 && sent >= f.daily_max ? '#4caf50' : '#ff9800';
         const opacity = f.enabled ? '1' : '0.4';
-        const hmSel = f.item === 'high_mineral' ? 'selected' : '';
-        const ctSel = f.item === 'crack_time' ? 'selected' : '';
+        const itemSel = (val) => f.item === val ? 'selected' : '';
         return `<tr style="border-bottom:1px solid #222;opacity:${opacity}">
           <td style="padding:4px"><input value="${f.buyer}" style="${editStyle}width:80px" onchange="updateFixedTrade(${f.id},'buyer',this.value)"></td>
-          <td style="padding:4px"><select style="${editStyle}width:55px" onchange="updateFixedTrade(${f.id},'item',this.value)"><option value="high_mineral" ${hmSel}>고미</option><option value="crack_time" ${ctSel}>시균</option></select></td>
+          <td style="padding:4px"><select style="${editStyle}width:65px" onchange="updateFixedTrade(${f.id},'item',this.value)"><option value="high_mineral" ${itemSel('high_mineral')}>고미</option><option value="crack_time" ${itemSel('crack_time')}>시균</option><option value="chitosan" ${itemSel('chitosan')}>키토산</option><option value="taurine" ${itemSel('taurine')}>타우린</option><option value="time" ${itemSel('time')}>타임</option><option value="drink" ${itemSel('drink')}>드링크</option></select></td>
           <td style="padding:4px"><input type="number" value="${f.price}" style="${editStyle}width:60px" onchange="updateFixedTrade(${f.id},'price',parseInt(this.value))"></td>
           <td style="text-align:right;padding:4px;font-weight:bold">${sent}</td>
           <td style="text-align:right;padding:4px"><input type="number" value="${f.daily_max||0}" style="${editStyle}width:45px;text-align:right" onchange="updateFixedTrade(${f.id},'daily_max',parseInt(this.value))"></td>
