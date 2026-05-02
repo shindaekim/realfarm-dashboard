@@ -284,6 +284,23 @@
 const SUPABASE_URL = 'https://vszizoahwfjvcoxrjygr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzeml6b2Fod2ZqdmNveHJqeWdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5Mjk0NzIsImV4cCI6MjA5MDUwNTQ3Mn0.8IOMrEgoDycG2TOBT5Vtliy3CUs9Ua5AtpCqHvGdEv8';
 
+const ITEM_LABEL = {
+  high_mineral: '고미',
+  crack_time: '시균',
+  chitosan: '키토산',
+  taurine: '타우린',
+  time: '타임',
+  drink: '드링크'
+};
+const ITEM_CLASS = {
+  high_mineral: 'item-hm',
+  crack_time: 'item-ct',
+  chitosan: 'item-ct',
+  taurine: 'item-ct',
+  time: 'item-ct',
+  drink: 'item-ct'
+};
+
 async function fetchStatus() {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/status?select=*&order=pc_id.asc,device_id.asc`, {
     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -583,7 +600,7 @@ async function submitSell(item) {
       body: JSON.stringify(body)
     });
     if (res.ok || res.status === 201) {
-      const label = item === 'high_mineral' ? '고미' : '시균';
+      const label = ITEM_LABEL[item] || item;
       const devLabel = deviceId ? `#${deviceId}` : '자동';
       showToast(`${label} 주문 등록 (${devLabel} → ${name} x${count})`);
       clearDeviceSelection();
@@ -621,8 +638,8 @@ async function refreshQueue() {
       return;
     }
     el.innerHTML = rows.map(r => {
-      const label = r.item === 'high_mineral' ? '고미' : '시균';
-      const cls = r.item === 'high_mineral' ? 'item-hm' : 'item-ct';
+      const label = ITEM_LABEL[r.item] || r.item;
+      const cls = ITEM_CLASS[r.item] || 'item-ct';
       const dev = r.device_id ? `#${r.device_id}` : '자동';
       return `<div class="queue-item">
         <div class="info">
@@ -845,7 +862,7 @@ async function refreshSaleHistory() {
     if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="color:#666">판매 이력 없음</td></tr>'; return; }
     tbody.innerHTML = rows.map(r => {
       const t = new Date(r.created_at).toLocaleString('ko-KR', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-      const itemName = r.item === 'high_mineral' ? '고미' : r.item === 'crack_time' ? '시균' : r.item;
+      const itemName = ITEM_LABEL[r.item] || r.item;
       const total = (r.total_price || 0).toLocaleString();
       return `<tr>
         <td>${t}</td>
