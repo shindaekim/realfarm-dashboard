@@ -34,6 +34,8 @@
   .status-갈엎중 { background: #4caf50; }
   .status-정산중 { background: #ff9800; }
   .status-안전거래중 { background: #2196f3; }
+  .status-안거판매중 { background: #2196f3; }
+  .status-안거구매중 { background: #00bcd4; }
   .status-대기중 { background: #666; }
   .status-감시중 { background: #4caf50; }
   .status-배급중 { background: #9c27b0; }
@@ -42,6 +44,10 @@
   .status-타임수확중 { background: #4caf50; }
   .status-드링크제조중 { background: #2196f3; }
   .status-드링크수확중 { background: #00bcd4; }
+  .status-우편확인중 { background: #607d8b; }
+  .status-부족체크중 { background: #795548; }
+  .status-이웃수락중 { background: #ff5722; }
+  .status-재고확인중 { background: #ffc107; }
 
   /* 도넛 차트 */
   .donut-wrap { display: flex; align-items: center; gap: 16px; }
@@ -64,6 +70,8 @@
   .tag-갈엎중 { background: #1b5e20; color: #a5d6a7; }
   .tag-정산중 { background: #e65100; color: #ffcc80; }
   .tag-안전거래중 { background: #0d47a1; color: #90caf9; }
+  .tag-안거판매중 { background: #0d47a1; color: #90caf9; }
+  .tag-안거구매중 { background: #006064; color: #80deea; }
   .tag-대기중 { background: #333; color: #999; }
   .tag-감시중 { background: #1b5e20; color: #a5d6a7; }
   .tag-배급중 { background: #4a148c; color: #ce93d8; }
@@ -72,6 +80,10 @@
   .tag-타임수확중 { background: #2e7d32; color: #a5d6a7; }
   .tag-드링크제조중 { background: #0d47a1; color: #90caf9; }
   .tag-드링크수확중 { background: #00695c; color: #80cbc4; }
+  .tag-우편확인중 { background: #37474f; color: #b0bec5; }
+  .tag-부족체크중 { background: #4e342e; color: #bcaaa4; }
+  .tag-이웃수락중 { background: #bf360c; color: #ffab91; }
+  .tag-재고확인중 { background: #ff8f00; color: #ffe082; }
   .warn { color: #ff4444; font-weight: bold; }
   .stale-row { opacity: 0.5; }
   .gold { color: #ffd700; }
@@ -409,7 +421,7 @@ function render(data) {
 
   // 상태 바 차트
   const statusCounts = {};
-  const statuses = ['갈엎중', '정산중', '안전거래중', '대기중'];
+  const statuses = ['갈엎중', '정산중', '안거판매중', '안거구매중', '대기중'];
   statuses.forEach(s => statusCounts[s] = 0);
   data.forEach(d => {
     const s = d.status || '대기중';
