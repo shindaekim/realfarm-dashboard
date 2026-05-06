@@ -820,16 +820,24 @@ async function refreshFactoryNeeds() {
       <tr style="color:#888;border-bottom:1px solid #333">
         <th style="text-align:left;padding:4px">구매자</th>
         <th style="text-align:left;padding:4px">아이템</th>
-        <th style="text-align:right;padding:4px">부족분량</th>
+        <th style="text-align:right;padding:4px">필요</th>
+        <th style="text-align:right;padding:4px">분배됨</th>
+        <th style="text-align:right;padding:4px">진척</th>
         <th style="text-align:right;padding:4px;color:#666;font-weight:normal">갱신</th>
       </tr>
       ${needs.map(n => {
         const label = ITEM_LABEL[n.item] || n.item;
+        const sent = n.sent || 0;
+        const remaining = Math.max(0, n.needed - sent);
+        const pct = n.needed > 0 ? Math.min(100, Math.round(sent / n.needed * 100)) : 0;
+        const pctColor = sent >= n.needed ? '#4caf50' : (remaining > 0 ? '#ff9800' : '#888');
         const updated = n.updated_at ? new Date(n.updated_at).toLocaleString('ko-KR', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
         return `<tr style="border-bottom:1px solid #222">
           <td style="padding:4px">${n.buyer}</td>
           <td style="padding:4px">${label}</td>
           <td style="text-align:right;padding:4px;font-weight:bold;color:#ff9800">${n.needed}</td>
+          <td style="text-align:right;padding:4px;color:#4caf50">${sent}</td>
+          <td style="text-align:right;padding:4px;color:${pctColor};font-weight:bold">${pct}%</td>
           <td style="text-align:right;padding:4px;color:#666;font-size:11px">${updated}</td>
         </tr>`;
       }).join('')}
