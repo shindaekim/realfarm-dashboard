@@ -287,6 +287,10 @@
     </div>
     <div id="fixedTradeList"></div>
   </div>
+  <div style="margin-top:10px;padding-top:10px;border-top:1px solid #333">
+    <h4 style="font-size:13px;color:#aaa;margin-bottom:6px">🏭 Factory 부족분량 (자동 관리)</h4>
+    <div id="factoryNeedsList" style="font-size:12px"><div class="empty" style="color:#666">로딩 중...</div></div>
+  </div>
 </div>
 <div class="sell-toast" id="sellToast"></div>
 
@@ -801,6 +805,40 @@ async function refreshTradeStatus() {
   }
 }
 
+async function refreshFactoryNeeds() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/factory_needs?select=*&order=buyer.asc,item.asc`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const needs = await res.json();
+    const el = document.getElementById('factoryNeedsList');
+    if (!Array.isArray(needs) || needs.length === 0) {
+      el.innerHTML = '<div class="empty" style="color:#666">부족분량 없음 (모든 Factory 충족)</div>';
+      return;
+    }
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse">
+      <tr style="color:#888;border-bottom:1px solid #333">
+        <th style="text-align:left;padding:4px">구매자</th>
+        <th style="text-align:left;padding:4px">아이템</th>
+        <th style="text-align:right;padding:4px">부족분량</th>
+        <th style="text-align:right;padding:4px;color:#666;font-weight:normal">갱신</th>
+      </tr>
+      ${needs.map(n => {
+        const label = ITEM_LABEL[n.item] || n.item;
+        const updated = n.updated_at ? new Date(n.updated_at).toLocaleString('ko-KR', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+        return `<tr style="border-bottom:1px solid #222">
+          <td style="padding:4px">${n.buyer}</td>
+          <td style="padding:4px">${label}</td>
+          <td style="text-align:right;padding:4px;font-weight:bold;color:#ff9800">${n.needed}</td>
+          <td style="text-align:right;padding:4px;color:#666;font-size:11px">${updated}</td>
+        </tr>`;
+      }).join('')}
+    </table>`;
+  } catch(e) {
+    document.getElementById('factoryNeedsList').innerHTML = `<div style="color:#ff4444">오류: ${e.message}</div>`;
+  }
+}
+
 async function refresh() {
   try {
     const data = await fetchStatus();
@@ -809,6 +847,7 @@ async function refresh() {
     refreshDailySummary();
     refreshSaleHistory();
     refreshTradeStatus();
+    refreshFactoryNeeds();
   } catch (e) {
     document.getElementById('updateInfo').textContent = `오류: ${e.message}`;
     document.getElementById('updateInfo').className = 'update-info stale';
