@@ -158,58 +158,13 @@
 </div>
 
 <div class="daily-summary">
-  <h3>📋 오늘의 정산</h3>
+  <h3>💰 전체 보유 골드</h3>
   <div style="display:flex;gap:12px;flex-wrap:wrap">
-    <div class="summary-item" style="flex:1">
-      <span class="label">총 판매 예상액</span>
-      <span class="value" id="dailyGoldDiff" style="color:#666">-</span>
-    </div>
-    <div class="summary-item" style="flex:1">
-      <span class="label">고미</span>
-      <span class="value" id="dailyHmCount" style="color:#666">-</span>
-    </div>
-    <div class="summary-item" style="flex:1">
-      <span class="label">시균</span>
-      <span class="value" id="dailyCtCount" style="color:#666">-</span>
-    </div>
-    <div class="summary-item" style="flex:1">
-      <span class="label">키토산</span>
-      <span class="value" id="dailyChitoCount" style="color:#666">-</span>
-    </div>
-    <div class="summary-item" style="flex:1">
-      <span class="label">타우린</span>
-      <span class="value" id="dailyTaurineCount" style="color:#666">-</span>
-    </div>
-    <div class="summary-item" style="flex:1">
-      <span class="label">타임</span>
-      <span class="value" id="dailyTimeCount" style="color:#666">-</span>
-    </div>
-    <div class="summary-item" style="flex:1">
-      <span class="label">드링크</span>
-      <span class="value" id="dailyDrinkCount" style="color:#666">-</span>
-    </div>
     <div class="summary-item" style="flex:1">
       <span class="label">전체 보유 골드</span>
       <span class="value" id="totalGold" style="color:#666">-</span>
     </div>
   </div>
-</div>
-
-<div class="table-wrap" style="margin-top:12px">
-  <h3>📊 최근 판매 이력 (10건)</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>시간</th>
-        <th>PC</th>
-        <th>디바이스</th>
-        <th>구매자</th>
-        <th>아이템</th>
-        <th>총 판매가격</th>
-      </tr>
-    </thead>
-    <tbody id="saleHistoryTable"><tr><td colspan="6" style="color:#666">로딩 중...</td></tr></tbody>
-  </table>
 </div>
 
 <div class="table-wrap" style="margin-top:12px">
@@ -316,7 +271,9 @@ const ITEM_CLASS = {
 };
 
 async function fetchStatus() {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/status?select=*&order=pc_id.asc,device_id.asc`, {
+  const cols = 'pc_id,device_id,name,bot_type,status,gold,drink,post_drink,'
+              + 'item_cnt,total_cnt,high_mineral,crack_time,chitosan,taurine,time_qty,last_update';
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/status?select=${cols}&order=pc_id.asc,device_id.asc`, {
     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
   });
   return await res.json();
@@ -852,8 +809,6 @@ async function refresh() {
     const data = await fetchStatus();
     render(data);
     refreshQueue();
-    refreshDailySummary();
-    refreshSaleHistory();
     refreshTradeStatus();
     refreshFactoryNeeds();
   } catch (e) {
@@ -862,82 +817,13 @@ async function refresh() {
   }
 }
 
-async function refreshDailySummary() {
-  try {
-    // 오늘 판매 수량 + 판매액 (daily_summary 테이블) - 한국 시간 기준
-    const now = new Date(Date.now() + 9 * 3600000);
-    const today = now.toISOString().slice(0, 10);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/daily_summary?recorded_date=eq.${today}&select=hm_count,ct_count,chitosan_count,taurine_count,time_count,drink_count,total_sales`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
-    const rows = await res.json();
-    let hmCount = 0, ctCount = 0, chitoCount = 0, taurineCount = 0, timeCount = 0, drinkCount = 0, totalSales = 0;
-    rows.forEach(r => {
-      hmCount += parseInt(r.hm_count) || 0;
-      ctCount += parseInt(r.ct_count) || 0;
-      chitoCount += parseInt(r.chitosan_count) || 0;
-      taurineCount += parseInt(r.taurine_count) || 0;
-      timeCount += parseInt(r.time_count) || 0;
-      drinkCount += parseInt(r.drink_count) || 0;
-      totalSales += parseInt(r.total_sales) || 0;
-    });
-
-    const salesEl = document.getElementById('dailyGoldDiff');
-    if (totalSales > 0) {
-      let str;
-      if (totalSales >= 100000000) str = (totalSales / 100000000).toFixed(1) + '억';
-      else if (totalSales >= 10000) str = Math.round(totalSales / 10000).toLocaleString() + '만';
-      else str = totalSales.toLocaleString();
-      salesEl.textContent = str;
-      salesEl.style.color = '#ffd700';
-    } else {
-      salesEl.textContent = '-';
-      salesEl.style.color = '#666';
-    }
-    document.getElementById('dailyHmCount').textContent = hmCount + '개';
-    document.getElementById('dailyHmCount').style.color = '#e91e63';
-    document.getElementById('dailyCtCount').textContent = ctCount + '개';
-    document.getElementById('dailyCtCount').style.color = '#2196f3';
-    document.getElementById('dailyChitoCount').textContent = chitoCount + '개';
-    document.getElementById('dailyChitoCount').style.color = '#9c27b0';
-    document.getElementById('dailyTaurineCount').textContent = taurineCount + '개';
-    document.getElementById('dailyTaurineCount').style.color = '#00bcd4';
-    document.getElementById('dailyTimeCount').textContent = timeCount + '개';
-    document.getElementById('dailyTimeCount').style.color = '#ff9800';
-    document.getElementById('dailyDrinkCount').textContent = drinkCount + '개';
-    document.getElementById('dailyDrinkCount').style.color = '#4caf50';
-  } catch(e) {}
-}
-
-async function refreshSaleHistory() {
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/sale_history?select=*&order=created_at.desc&limit=10`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
-    const rows = await res.json();
-    const tbody = document.getElementById('saleHistoryTable');
-    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="color:#666">판매 이력 없음</td></tr>'; return; }
-    tbody.innerHTML = rows.map(r => {
-      const t = new Date(r.created_at).toLocaleString('ko-KR', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-      const itemName = ITEM_LABEL[r.item] || r.item;
-      const total = (r.total_price || 0).toLocaleString();
-      return `<tr>
-        <td>${t}</td>
-        <td>${r.pc_id}</td>
-        <td>#${r.device_id}</td>
-        <td>${r.customer_name || '-'}</td>
-        <td>${itemName}</td>
-        <td class="gold">${total}</td>
-      </tr>`;
-    }).join('');
-  } catch(e) {
-    document.getElementById('saleHistoryTable').innerHTML = '<tr><td colspan="6" style="color:#f44">로드 실패</td></tr>';
-  }
-}
-
 loadPcList();
 refresh();
-setInterval(refresh, 30000);
+
+// 폴링 5분. 30초였을 때는 탭 하나당 하루 약 17,000 요청이 나가 앱 전체보다 부하가 컸다.
+// 백그라운드 탭에서는 아예 건너뛰고, 다시 보이는 순간 즉시 한 번 갱신한다.
+setInterval(() => { if (!document.hidden) refresh(); }, 300000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
 </script>
 </body>
 </html>
